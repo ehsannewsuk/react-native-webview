@@ -1,17 +1,17 @@
 import java.nio.file.Paths
 
 buildscript {
-    ext.safeExtGet = {prop ->
-        rootProject.ext.has(prop) ? rootProject.ext.get(prop) : project.properties['ReactNativeWebView_' + prop]
-    }
-    repositories {
-        google()
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${safeExtGet('kotlinVersion')}")
-        classpath("com.android.tools.build:gradle:7.0.4")
-    }
+  ext.safeExtGet = { prop ->
+    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : project.properties['ReactNativeWebView_' + prop]
+  }
+  repositories {
+    google()
+    gradlePluginPortal()
+  }
+  dependencies {
+    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${safeExtGet('kotlinVersion')}")
+    classpath("com.android.tools.build:gradle:8.2.1")
+  }
 }
 
 def getExtOrIntegerDefault(prop) {
@@ -19,21 +19,21 @@ def getExtOrIntegerDefault(prop) {
 }
 
 static def findNodeModulePath(baseDir, packageName) {
-    def basePath = baseDir.toPath().normalize()
-    // Node's module resolution algorithm searches up to the root directory,
-    // after which the base path will be null
-    while (basePath) {
-        def candidatePath = Paths.get(basePath.toString(), "node_modules", packageName)
-        if (candidatePath.toFile().exists()) {
-            return candidatePath.toString()
-        }
-        basePath = basePath.getParent()
+  def basePath = baseDir.toPath().normalize()
+  // Node's module resolution algorithm searches up to the root directory,
+  // after which the base path will be null
+  while (basePath) {
+    def candidatePath = Paths.get(basePath.toString(), "node_modules", packageName)
+    if (candidatePath.toFile().exists()) {
+      return candidatePath.toString()
     }
-    return null
+    basePath = basePath.getParent()
+  }
+  return null
 }
 
 def isNewArchitectureEnabled() {
-    return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
+  return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
 }
 
 def supportsNamespace() {
@@ -51,41 +51,45 @@ def supportsNamespace() {
 
 apply plugin: 'com.android.library'
 if (isNewArchitectureEnabled()) {
-    apply plugin: 'com.facebook.react'
+  apply plugin: 'com.facebook.react'
 }
 apply plugin: 'kotlin-android'
 
 android {
-    if (supportsNamespace()) {
-        namespace "com.reactnativecommunity.webview"
-        buildFeatures {
-            buildConfig true
-        }
+  namespace "com.reactnativecommunity.webview"
+  buildFeatures {
+    buildConfig true
+  }
 
-        sourceSets {
-            main {
-                manifest.srcFile "src/main/AndroidManifestNew.xml"
-            }
-        }
+  sourceSets {
+    main {
+      manifest.srcFile "src/main/AndroidManifestNew.xml"
     }
+  }
 
-    compileSdkVersion getExtOrIntegerDefault('compileSdkVersion')
 
-    defaultConfig {
-        minSdkVersion getExtOrIntegerDefault('minSdkVersion')
-        targetSdkVersion getExtOrIntegerDefault('targetSdkVersion')
-        buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+  compileSdkVersion getExtOrIntegerDefault('compileSdkVersion')
+
+  defaultConfig {
+    minSdkVersion getExtOrIntegerDefault('minSdkVersion')
+    targetSdkVersion getExtOrIntegerDefault('targetSdkVersion')
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+  }
+
+  sourceSets {
+    main {
+      if (isNewArchitectureEnabled()) {
+        java.srcDirs += ['src/newarch']
+      } else {
+        java.srcDirs += ['src/oldarch']
+      }
     }
+  }
 
-    sourceSets {
-        main {
-            if (isNewArchitectureEnabled()) {
-                java.srcDirs += ['src/newarch']
-            } else {
-                java.srcDirs += ['src/oldarch']
-            }
-        }
-    }
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
 }
 
 def reactNativePath = findNodeModulePath(projectDir, "react-native")
@@ -96,15 +100,15 @@ if (codegenPath == null) {
 }
 
 repositories {
-    maven {
-        url "${reactNativePath}/android"
-    }
-    mavenCentral()
-    google()
+  maven {
+    url "${reactNativePath}/android"
+  }
+  google()
+  mavenCentral()
 }
 
 dependencies {
-    implementation 'com.facebook.react:react-native:+'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:${safeExtGet('kotlinVersion')}"
-    implementation "androidx.webkit:webkit:${safeExtGet('webkitVersion')}"
+  implementation 'com.facebook.react:react-android:0.72.7'
+  implementation "org.jetbrains.kotlin:kotlin-stdlib:${safeExtGet('kotlinVersion')}"
+  implementation "androidx.webkit:webkit:${safeExtGet('webkitVersion')}"
 }
